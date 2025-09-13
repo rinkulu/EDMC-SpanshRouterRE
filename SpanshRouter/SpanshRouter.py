@@ -1,26 +1,26 @@
-import os
-import sys
-import traceback
+import ast
 import csv
-import subprocess
-import webbrowser
+import io
 import json
+import logging
+import os
 import re
 import requests
-import io
-import ast
-from time import sleep
-from monitor import monitor
-from . import AutoCompleter
-from . import PlaceHolder
-from .updater import SpanshUpdater
+import subprocess
+import sys
 import tkinter as tk
 import tkinter.filedialog as filedialog
 import tkinter.messagebox as confirmDialog
-from tkinter import *
+import traceback
+import webbrowser
+from time import sleep
 
-import logging
-from config import appname
+from config import appname  # type: ignore
+from monitor import monitor  # type: ignore
+
+from . import AutoCompleter, PlaceHolder
+from .updater import SpanshUpdater
+
 
 # This could also be returned from plugin_start3()
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -30,6 +30,7 @@ plugin_name = os.path.basename(os.path.dirname(__file__))
 # NB: plugin_name here *must* be the plugin's folder name as per the preceding
 #     code, else the logger won't be properly set up.
 logger = logging.getLogger(f'{appname}.{plugin_name}')
+
 
 class SpanshRouter():
     def __init__(self, plugin_dir):
@@ -73,8 +74,8 @@ class SpanshRouter():
         self.waypoint_btn = tk.Button(self.frame, text=self.next_wp_label + '\n' + self.next_stop, command=self.copy_waypoint)
         self.waypoint_next_btn = tk.Button(self.frame, text="v", command=self.goto_next_waypoint)
         self.jumpcounttxt_lbl = tk.Label(self.frame, text=self.jumpcountlbl_txt + str(self.jumps_left))
-        self.bodies_lbl = tk.Label(self.frame, justify=LEFT, text=self.bodieslbl_txt + self.bodies)
-        self.fleetrestock_lbl = tk.Label(self.frame, justify=LEFT, text=self.fleetstocklbl_txt)
+        self.bodies_lbl = tk.Label(self.frame, justify=tk.LEFT, text=self.bodieslbl_txt + self.bodies)
+        self.fleetrestock_lbl = tk.Label(self.frame, justify=tk.LEFT, text=self.fleetstocklbl_txt)
         self.error_lbl = tk.Label(self.frame, textvariable=self.error_txt)
 
         # Plotting GUI
@@ -102,9 +103,10 @@ class SpanshRouter():
         row += 1
         self.fleetrestock_lbl.grid(row=row, columnspan=2, sticky=tk.W)
         row += 1
-        self.source_ac.grid(row=row,columnspan=2, pady=(10,0)) # The AutoCompleter takes two rows to show the list when needed, so we skip one
+        self.source_ac.grid(row=row, columnspan=2, pady=(10, 0))
+        # The AutoCompleter takes two rows to show the list when needed, so we skip one
         row += 2
-        self.dest_ac.grid(row=row,columnspan=2, pady=(10,0))
+        self.dest_ac.grid(row=row, columnspan=2, pady=(10, 0))
         row += 2
         self.range_entry.grid(row=row, pady=10, sticky=tk.W)
         row += 1
@@ -220,7 +222,7 @@ class SpanshRouter():
                 if self.offset > 0:
                     restock = self.route[self.offset - 1][2]
                     if restock.lower() == "yes":
-                        self.fleetrestock_lbl["text"] = f"At: {self.route[self.offset - 1][0]}\n   {self.fleetstocklbl_txt}" 
+                        self.fleetrestock_lbl["text"] = f"At: {self.route[self.offset - 1][0]}\n   {self.fleetstocklbl_txt}"
                         self.fleetrestock_lbl.grid()
 
             self.waypoint_prev_btn.grid()
@@ -232,7 +234,7 @@ class SpanshRouter():
             else:
                 self.waypoint_prev_btn.config(state=tk.NORMAL)
 
-                if self.offset == self.route.__len__()-1:
+                if self.offset == self.route.__len__() - 1:
                     self.waypoint_next_btn.config(state=tk.DISABLED)
                 else:
                     self.waypoint_next_btn.config(state=tk.NORMAL)
@@ -304,7 +306,7 @@ class SpanshRouter():
                 with open(self.offset_file_path, 'r') as offset_fh:
                     self.offset = int(offset_fh.readline())
 
-            except:
+            except Exception:
                 self.offset = 0
 
             self.jumps_left = 0
@@ -319,7 +321,7 @@ class SpanshRouter():
 
         except IOError:
             print("No previously saved route.")
-        except:
+        except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             sys.stderr.write(''.join('!! ' + line for line in lines))
@@ -334,7 +336,7 @@ class SpanshRouter():
             self.parent.update()
 
     def goto_next_waypoint(self):
-        if self.offset < self.route.__len__()-1:
+        if self.offset < self.route.__len__() - 1:
             self.update_route(1)
 
     def goto_prev_waypoint(self):
@@ -373,7 +375,7 @@ class SpanshRouter():
             ('CSV files', '*.csv'),
             ('Text files', '*.txt'),
         ]
-        filename = filedialog.askopenfilename(filetypes = ftypes, initialdir=os.path.expanduser('~'))
+        filename = filedialog.askopenfilename(filetypes=ftypes, initialdir=os.path.expanduser('~'))
 
         if filename.__len__() > 0:
             try:
@@ -395,7 +397,7 @@ class SpanshRouter():
                     self.save_all_route()
                 else:
                     self.show_error("Unsupported file type")
-            except:
+            except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 sys.stderr.write(''.join('!! ' + line for line in lines))
@@ -403,15 +405,15 @@ class SpanshRouter():
                 self.show_error("An error occured while reading the file.")
 
     def plot_csv(self, filename, clear_previous_route=True):
-       with io.open(filename, 'r', encoding='utf-8-sig', newline='') as csvfile:
+        with io.open(filename, 'r', encoding='utf-8-sig', newline='') as csvfile:
             self.roadtoriches = False
             self.fleetcarrier = False
-        
+
             if clear_previous_route:
                 self.clear_route(False)
-            
+
             route_reader = csv.DictReader(csvfile)
-            
+
             # Get column header names as string
             headerline = ','.join(route_reader.fieldnames)
 
@@ -422,7 +424,7 @@ class SpanshRouter():
             internalfleetcarrierheader = "System Name,Jumps,Restock Tritium"
             # Define the differnt import file formats based on the CSV header row
             neutronimportheader = "System Name,Distance To Arrival,Distance Remaining,Neutron Star,Jumps"
-            road2richesimportheader = "System Name,Body Name,Body Subtype,Is Terraformable,Distance To Arrival,Estimated Scan Value,Estimated Mapping Value,Jumps"
+            road2richesimportheader = "System Name,Body Name,Body Subtype,Is Terraformable,Distance To Arrival,Estimated Scan Value,Estimated Mapping Value,Jumps"  # noqa: E501
             fleetcarrierimportheader = "System Name,Distance,Distance Remaining,Fuel Used,Icy Ring,Pristine,Restock Tritium"
 
             if (headerline == internalbasicheader1) or (headerline == internalbasicheader2) or (headerline == neutronimportheader):
@@ -430,9 +432,9 @@ class SpanshRouter():
                     if row not in (None, "", []):
                         self.route.append([
                             row[self.system_header],
-                            row.get(self.jumps_header, "") # Jumps column is optional
+                            row.get(self.jumps_header, "")  # Jumps column is optional
                         ])
-                        if row.get(self.jumps_header): # Jumps column is optional
+                        if row.get(self.jumps_header):  # Jumps column is optional
                             self.jumps_left += int(row[self.jumps_header])
 
             elif headerline == internalrichesheader:
@@ -503,10 +505,10 @@ class SpanshRouter():
                     if row not in (None, "", []):
                         self.route.append([
                             row[self.system_header],
-                            1, # Jumps is faked as every row is 1 jump
+                            1,  # Jumps is faked as every row is 1 jump
                             row[self.restocktritium_header]
                         ])
-                        self.jumps_left += 1 # Jumps is faked as every row is 1 jump
+                        self.jumps_left += 1    # Jumps is faked as every row is 1 jump
 
             else:
                 self.show_error("Could not detect file format")
@@ -522,8 +524,11 @@ class SpanshRouter():
             self.source_ac.hide_list()
             self.dest_ac.hide_list()
 
-            if (    source  and source != self.source_ac.placeholder and
-                    dest    and dest != self.dest_ac.placeholder    ):
+            if (
+                source and dest
+                and source != self.source_ac.placeholder
+                and dest != self.dest_ac.placeholder
+            ):
 
                 try:
                     range_ly = float(self.range_entry.get())
@@ -531,7 +536,7 @@ class SpanshRouter():
                     self.show_error("Invalid range")
                     return
 
-                job_url="https://spansh.co.uk/api/route?"
+                job_url = "https://spansh.co.uk/api/route?"
 
                 results = requests.post(job_url, params={
                     "efficiency": efficiency,
@@ -544,7 +549,7 @@ class SpanshRouter():
                     self.enable_plot_gui(False)
 
                     tries = 0
-                    while(tries < 20):
+                    while tries < 20:
                         response = json.loads(results.content)
                         job = response["job"]
 
@@ -570,7 +575,12 @@ class SpanshRouter():
                             self.update_gui()
                             self.save_all_route()
                         else:
-                            sys.stderr.write("Failed to query plotted route from Spansh: code " + str(route_response.status_code) + route_response.text + '\n')
+                            sys.stderr.write(
+                                "Failed to query plotted route from Spansh: code "
+                                + str(route_response.status_code)
+                                + route_response.text
+                                + '\n'
+                            )
                             self.enable_plot_gui(True)
                             failure = json.loads(results.content)
 
@@ -587,7 +597,12 @@ class SpanshRouter():
                         self.enable_plot_gui(True)
                         self.show_error("The query to Spansh was too long and timed out, please try again.")
                 else:
-                    sys.stderr.write("Failed to query plotted route from Spansh: code " + str(results.status_code) + results.text + '\n')
+                    sys.stderr.write(
+                        "Failed to query plotted route from Spansh: code "
+                        + str(results.status_code)
+                        + results.text
+                        + '\n'
+                    )
                     self.enable_plot_gui(True)
                     failure = json.loads(results.content)
 
@@ -600,7 +615,7 @@ class SpanshRouter():
                     else:
                         self.show_error(self.plot_error)
 
-        except:
+        except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             sys.stderr.write(''.join('!! ' + line for line in lines))
@@ -615,7 +630,7 @@ class SpanshRouter():
                 for row in route_txt:
                     if row not in (None, "", []):
                         if row.lstrip().startswith('==='):
-                            jumps = int(re.findall("\d+ jump", row)[0].rstrip(' jumps'))
+                            jumps = int(re.findall(r"\d+ jump", row)[0].rstrip(' jumps'))
                             self.jumps_left += jumps
 
                             system = row[row.find('>') + 1:]
@@ -627,7 +642,7 @@ class SpanshRouter():
                                     self.jumps_left += jumps
                             else:
                                 self.route.append([system.strip(), jumps])
-        except:
+        except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             sys.stderr.write(''.join('!! ' + line for line in lines))
@@ -636,31 +651,31 @@ class SpanshRouter():
 
     def export_route(self):
         if self.route.__len__() == 0:
-            #logger.info("No route to export")
+            # logger.info("No route to export")
             print("No route to export")
             return
 
         route_start = self.route[0][0]
         route_end = self.route[-1][0]
         route_name = f"{route_start} to {route_end}"
-        #logger.info(f"Route name: {route_name}")
+        # logger.info(f"Route name: {route_name}")
 
         ftypes = [('TCE Flight Plan files', '*.exp')]
-        filename = filedialog.asksaveasfilename(filetypes = ftypes, initialdir=os.path.expanduser('~'), initialfile=f"{route_name}.exp")
+        filename = filedialog.asksaveasfilename(filetypes=ftypes, initialdir=os.path.expanduser('~'), initialfile=f"{route_name}.exp")
 
         if filename.__len__() > 0:
             try:
                 with open(filename, 'w') as csvfile:
                     for row in self.route:
                         csvfile.write(f"{route_name},{row[0]}\n")
-            except:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                #logger.error(''.join('!! ' + line for line in lines))
+            except Exception:
+                # exc_type, exc_value, exc_traceback = sys.exc_info()
+                # lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                # logger.error(''.join('!! ' + line for line in lines))
                 self.show_error("An error occured while writing the file.")
 
     def clear_route(self, show_dialog=True):
-        clear = confirmDialog.askyesno("SpanshRouter","Are you sure you want to clear the current route?") if show_dialog else True
+        clear = confirmDialog.askyesno("SpanshRouter", "Are you sure you want to clear the current route?") if show_dialog else True
 
         if clear:
             self.offset = 0
@@ -671,11 +686,11 @@ class SpanshRouter():
             self.fleetcarrier = False
             try:
                 os.remove(self.save_route_path)
-            except:
+            except Exception:
                 print("No route to delete")
             try:
                 os.remove(self.offset_file_path)
-            except:
+            except Exception:
                 print("No offset file to delete")
 
             self.update_gui()
@@ -696,7 +711,7 @@ class SpanshRouter():
                         writer.writerow(row)
 
                 if self.fleetcarrier:
-                    # Write output: System, Jumps, 
+                    # Write output: System, Jumps,
                     fieldnames = [self.system_header, self.jumps_header, self.restocktritium_header]
                     writer = csv.writer(csvfile)
                     writer.writerow(fieldnames)
@@ -712,7 +727,7 @@ class SpanshRouter():
         else:
             try:
                 os.remove(self.save_route_path)
-            except:
+            except Exception:
                 print("No route to delete")
 
     def save_offset(self):
@@ -722,21 +737,22 @@ class SpanshRouter():
         else:
             try:
                 os.remove(self.offset_file_path)
-            except:
+            except Exception:
                 print("No offset to delete")
 
     def update_bodies_text(self):
-        if not self.roadtoriches: return
+        if not self.roadtoriches:
+            return
 
         # For the bodies to scan use the current system, which is one before the next stop
         lastsystemoffset = self.offset - 1
         if lastsystemoffset < 0:
-            lastsystemoffset = 0 # Display bodies of the first system
+            lastsystemoffset = 0    # Display bodies of the first system
 
         lastsystem = self.route[lastsystemoffset][0]
         bodynames = self.route[lastsystemoffset][2]
         bodysubtypes = self.route[lastsystemoffset][3]
-     
+
         waterbodies = []
         rockybodies = []
         metalbodies = []
@@ -747,21 +763,26 @@ class SpanshRouter():
             shortbodyname = bodynames[num].replace(lastsystem + " ", "")
             if name.lower() == "high metal content world":
                 metalbodies.append(shortbodyname)
-            elif name.lower() == "rocky body": 
+            elif name.lower() == "rocky body":
                 rockybodies.append(shortbodyname)
             elif name.lower() == "earth-like world":
                 earthlikebodies.append(shortbodyname)
-            elif name.lower() == "water world": 
+            elif name.lower() == "water world":
                 waterbodies.append(shortbodyname)
             else:
                 unknownbodies.append(shortbodyname)
 
         bodysubtypeandname = ""
-        if len(metalbodies) > 0: bodysubtypeandname += f"\n   Metal: " + ', '.join(metalbodies)
-        if len(rockybodies) > 0: bodysubtypeandname += f"\n   Rocky: " + ', '.join(rockybodies)
-        if len(earthlikebodies) > 0: bodysubtypeandname += f"\n   Earth: " + ', '.join(earthlikebodies)
-        if len(waterbodies) > 0: bodysubtypeandname += f"\n   Water: " + ', '.join(waterbodies)
-        if len(unknownbodies) > 0: bodysubtypeandname += f"\n   Unknown: " + ', '.join(unknownbodies)
+        if len(metalbodies) > 0:
+            bodysubtypeandname += "\n   Metal: " + ', '.join(metalbodies)
+        if len(rockybodies) > 0:
+            bodysubtypeandname += "\n   Rocky: " + ', '.join(rockybodies)
+        if len(earthlikebodies) > 0:
+            bodysubtypeandname += "\n   Earth: " + ', '.join(earthlikebodies)
+        if len(waterbodies) > 0:
+            bodysubtypeandname += "\n   Water: " + ', '.join(waterbodies)
+        if len(unknownbodies) > 0:
+            bodysubtypeandname += "\n   Unknown: " + ', '.join(unknownbodies)
 
         self.bodies = f"\n{lastsystem}:{bodysubtypeandname}"
 
@@ -779,18 +800,22 @@ class SpanshRouter():
 
     def cleanup_old_version(self):
         try:
-            if (os.path.exists(os.path.join(self.plugin_dir, "AutoCompleter.py"))
-            and os.path.exists(os.path.join(self.plugin_dir, "SpanshRouter"))):
+            if (
+                os.path.exists(os.path.join(self.plugin_dir, "AutoCompleter.py"))
+                and os.path.exists(os.path.join(self.plugin_dir, "SpanshRouter"))
+            ):
                 files_list = os.listdir(self.plugin_dir)
 
                 for filename in files_list:
-                    if (filename != "load.py"
-                    and (filename.endswith(".py") or filename.endswith(".pyc") or filename.endswith(".pyo"))):
+                    if (
+                        filename != "load.py"
+                        and (filename.endswith(".py") or filename.endswith(".pyc") or filename.endswith(".pyo"))
+                    ):
                         os.remove(os.path.join(self.plugin_dir, filename))
-        except:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                sys.stderr.write(''.join('!! ' + line for line in lines))
+        except Exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            sys.stderr.write(''.join('!! ' + line for line in lines))
 
     def check_for_update(self):
         self.cleanup_old_version()
@@ -804,7 +829,7 @@ class SpanshRouter():
 
             else:
                 sys.stderr.write("Could not query latest SpanshRouter version: " + str(response.status_code) + response.text)
-        except:
+        except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             sys.stderr.write(''.join('!! ' + line for line in lines))

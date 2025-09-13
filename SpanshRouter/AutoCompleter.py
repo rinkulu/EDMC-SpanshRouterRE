@@ -1,21 +1,20 @@
-import threading
 import json
-import os
+import queue
 import requests
-import traceback
-from time import sleep
 import sys
-from tkinter import *
+import threading
+import tkinter as tk
+import traceback
+
 from SpanshRouter.PlaceHolder import PlaceHolder
-import queue 
-    
+
 
 class AutoCompleter(PlaceHolder):
     def __init__(self, parent, placeholder, **kw):
 
         self.parent = parent
 
-        self.lb = Listbox(self.parent, selectmode=SINGLE, **kw)
+        self.lb = tk.Listbox(self.parent, selectmode=tk.SINGLE, **kw)
         self.lb_up = False
         self.has_selected = False
         self.queue = queue.Queue()
@@ -24,7 +23,7 @@ class AutoCompleter(PlaceHolder):
         self.var.traceid = self.var.trace('w', self.changed)
 
         # Create right click menu
-        self.menu = Menu(self.parent, tearoff=0)
+        self.menu = tk.Menu(self.parent, tearoff=0)
         self.menu.add_command(label="Cut")
         self.menu.add_command(label="Copy")
         self.menu.add_command(label="Paste")
@@ -40,25 +39,22 @@ class AutoCompleter(PlaceHolder):
         self.update_me()
 
     def ac_foc_out(self, event=None):
-        x,y = self.parent.winfo_pointerxy()
-        widget_under_cursor = self.parent.winfo_containing(x,y)
+        x, y = self.parent.winfo_pointerxy()
+        widget_under_cursor = self.parent.winfo_containing(x, y)
         if (widget_under_cursor != self.lb and widget_under_cursor != self) or event is None:
             self.foc_out()
             self.hide_list()
-    
+
     def show_menu(self, e):
         self.foc_in()
         w = e.widget
-        self.menu.entryconfigure("Cut",
-            command=lambda: w.event_generate("<<Cut>>"))
-        self.menu.entryconfigure("Copy",
-            command=lambda: w.event_generate("<<Copy>>"))
-        self.menu.entryconfigure("Paste",
-            command=lambda: w.event_generate("<<Paste>>"))
+        self.menu.entryconfigure("Cut", command=lambda: w.event_generate("<<Cut>>"))
+        self.menu.entryconfigure("Copy", command=lambda: w.event_generate("<<Copy>>"))
+        self.menu.entryconfigure("Paste", command=lambda: w.event_generate("<<Paste>>"))
         self.menu.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
 
     def keypressed(self, event):
-        key=event.keysym
+        key = event.keysym
         if key == 'Down':
             self.down(event.widget.widgetName)
         elif key == 'Up':
@@ -68,7 +64,7 @@ class AutoCompleter(PlaceHolder):
                 self.selection()
         elif key in ['Escape', 'Tab', 'ISO_Left_Tab'] and self.lb_up:
             self.hide_list()
-    
+
     def select_all(self, event):
         event.widget.event_generate('<<SelectAll>>')
 
@@ -80,7 +76,7 @@ class AutoCompleter(PlaceHolder):
         else:
             t = threading.Thread(target=self.query_systems, args=[value])
             t.start()
-        
+
     def selection(self, event=None):
         if self.lb_up:
             self.has_selected = True
@@ -88,7 +84,7 @@ class AutoCompleter(PlaceHolder):
             self.var.trace_vdelete("w", self.var.traceid)
             self.var.set(self.lb.get(index))
             self.hide_list()
-            self.icursor(END)
+            self.icursor(tk.END)
             self.var.traceid = self.var.trace('w', self.changed)
 
     def up(self, widget):
@@ -97,12 +93,12 @@ class AutoCompleter(PlaceHolder):
                 index = '0'
             else:
                 index = self.lb.curselection()[0]
-            if index != '0':                
+            if index != '0':
                 self.lb.selection_clear(first=index)
-                index = str(int(index)-1)                
+                index = str(int(index) - 1)
                 self.lb.selection_set(first=index)
                 if widget != "listbox":
-                    self.lb.activate(index) 
+                    self.lb.activate(index)
 
     def down(self, widget):
         if self.lb_up:
@@ -110,10 +106,10 @@ class AutoCompleter(PlaceHolder):
                 index = '0'
             else:
                 index = self.lb.curselection()[0]
-                if int(index+1) != END:
+                if int(index + 1) != tk.END:
                     self.lb.selection_clear(first=index)
-                    index = str(int(index+1))
-    
+                    index = str(int(index + 1))
+
             self.lb.selection_set(first=index)
             if widget != "listbox":
                 self.lb.activate(index)
@@ -122,9 +118,9 @@ class AutoCompleter(PlaceHolder):
 
     def show_results(self, results):
         if results:
-            self.lb.delete(0, END)
+            self.lb.delete(0, tk.END)
             for w in results:
-                self.lb.insert(END,w)
+                self.lb.insert(tk.END, w)
 
             self.show_list(len(results))
         else:
@@ -136,7 +132,7 @@ class AutoCompleter(PlaceHolder):
         if not self.lb_up and self.parent.focus_get() is self:
             info = self.grid_info()
             if info:
-                self.lb.grid(row=int(info["row"])+1, columnspan=2)
+                self.lb.grid(row=int(info["row"]) + 1, columnspan=2)
                 self.lb_up = True
 
     def hide_list(self):
@@ -149,22 +145,24 @@ class AutoCompleter(PlaceHolder):
         if inp != self.placeholder and inp.__len__() >= 3:
             url = "https://spansh.co.uk/api/systems?"
             try:
-                results = requests.get(url, 
-                    params={'q': inp}, 
+                results = requests.get(
+                    url,
+                    params={'q': inp},
                     headers={'User-Agent': "EDMC_SpanshRouter 1.0"},
-                    timeout=3)
+                    timeout=3
+                )
 
                 lista = json.loads(results.content)
                 if lista:
                     self.write(lista)
-            except:
+            except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 sys.stderr.write(''.join('!! ' + line for line in lines))
 
     def write(self, lista):
         self.queue.put(lista)
-        
+
     def clear(self):
         self.queue.put(None)
 
@@ -177,7 +175,7 @@ class AutoCompleter(PlaceHolder):
         except queue.Empty:
             pass
         self.after(100, self.update_me)
-    
+
     def set_text(self, text, placeholder_style=True):
         if placeholder_style:
             self['fg'] = self.placeholder_color
@@ -186,15 +184,16 @@ class AutoCompleter(PlaceHolder):
 
         try:
             self.var.trace_vdelete("w", self.var.traceid)
-        except:
+        except Exception:
             pass
         finally:
-            self.delete(0, END)
+            self.delete(0, tk.END)
             self.insert(0, text)
             self.var.traceid = self.var.trace('w', self.changed)
 
+
 if __name__ == '__main__':
-    root = Tk()
+    root = tk.Tk()
 
     widget = AutoCompleter(root, "Test")
     widget.grid(row=0)

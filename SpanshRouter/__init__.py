@@ -1,6 +1,6 @@
-import sys
-import traceback
-from SpanshRouter.updater import SpanshUpdater
+# flake8: noqa
+
+from SpanshRouter import SpanshRouter
 from SpanshRouter.AutoCompleter import AutoCompleter
 from SpanshRouter.PlaceHolder import PlaceHolder
-from SpanshRouter import SpanshRouter
+from SpanshRouter.updater import SpanshUpdater
