@@ -1,12 +1,13 @@
-# Ignore saved route files
+# Route files
 *.csv
 
-# Ignore compiles python files
+# Python cache/compiled files
 *.pyo
 *.pyc
-.vscode/settings.json
+__pycache__/
 
+# IDE settings
 .vscode/
 
-offset
-.idea/
+# Virtual environment
+.venv/
