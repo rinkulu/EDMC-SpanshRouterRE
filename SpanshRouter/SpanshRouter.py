@@ -18,7 +18,8 @@ from time import sleep
 from config import appname  # type: ignore
 from monitor import monitor  # type: ignore
 
-from . import AutoCompleter, PlaceHolder
+from .AutoCompleter import AutoCompleter
+from .PlaceHolder import PlaceHolder
 from .updater import SpanshUpdater
 
 
