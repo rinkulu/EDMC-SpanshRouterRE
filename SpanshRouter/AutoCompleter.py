@@ -148,7 +148,8 @@ class AutoCompleter(PlaceHolder):
                 results = requests.get(
                     url,
                     params={'q': inp},
-                    headers={'User-Agent': "EDMC_SpanshRouter 1.0"},
+                    # TODO: switch to using a global setting
+                    headers={'User-Agent': "EDMC-SpanshRouterRE 1.0.0"},
                     timeout=3
                 )
 

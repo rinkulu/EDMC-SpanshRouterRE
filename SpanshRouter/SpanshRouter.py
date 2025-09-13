@@ -34,7 +34,7 @@ logger = logging.getLogger(f'{appname}.{plugin_name}')
 
 class SpanshRouter():
     def __init__(self, plugin_dir):
-        version_file = os.path.join(plugin_dir, "version.json")
+        version_file = os.path.join(plugin_dir, "version")
         with open(version_file, 'r') as version_fd:
             self.plugin_version = version_fd.read()
 
@@ -365,7 +365,7 @@ class SpanshRouter():
         self.save_offset()
 
     def goto_changelog_page(self):
-        changelog_url = 'https://github.com/CMDR-Kiel42/EDMC_SpanshRouter/blob/master/CHANGELOG.md#'
+        changelog_url = 'https://github.com/rinkulu/EDMC-SpanshRouterRE/blob/master/CHANGELOG.md#'
         changelog_url += self.spansh_updater.version.replace('.', '')
         webbrowser.open(changelog_url)
 
@@ -538,12 +538,17 @@ class SpanshRouter():
 
                 job_url = "https://spansh.co.uk/api/route?"
 
-                results = requests.post(job_url, params={
-                    "efficiency": efficiency,
-                    "range": range_ly,
-                    "from": source,
-                    "to": dest
-                }, headers={'User-Agent': "EDMC_SpanshRouter 1.0"})
+                results = requests.post(
+                    job_url,
+                    params={
+                        "efficiency": efficiency,
+                        "range": range_ly,
+                        "from": source,
+                        "to": dest
+                    },
+                    # TODO: switch to using a global setting
+                    headers={'User-Agent': "EDMC-SpanshRouterRE 1.0.0"}
+                )
 
                 if results.status_code == 202:
                     self.enable_plot_gui(False)
@@ -675,7 +680,10 @@ class SpanshRouter():
                 self.show_error("An error occured while writing the file.")
 
     def clear_route(self, show_dialog=True):
-        clear = confirmDialog.askyesno("SpanshRouter", "Are you sure you want to clear the current route?") if show_dialog else True
+        clear = confirmDialog.askyesno(
+            "SpanshRouterRE",
+            "Are you sure you want to clear the current route?"
+        ) if show_dialog else True
 
         if clear:
             self.offset = 0
@@ -819,7 +827,7 @@ class SpanshRouter():
 
     def check_for_update(self):
         self.cleanup_old_version()
-        version_url = "https://raw.githubusercontent.com/CMDR-Kiel42/EDMC_SpanshRouter/master/version.json"
+        version_url = "https://raw.githubusercontent.com/rinkulu/EDMC-SpanshRouterRE/master/version"
         try:
             response = requests.get(version_url, timeout=2)
             if response.status_code == 200:
@@ -828,7 +836,7 @@ class SpanshRouter():
                     self.spansh_updater = SpanshUpdater(response.text, self.plugin_dir)
 
             else:
-                sys.stderr.write("Could not query latest SpanshRouter version: " + str(response.status_code) + response.text)
+                sys.stderr.write("Could not query latest SpanshRouterRE version: " + str(response.status_code) + response.text)
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)

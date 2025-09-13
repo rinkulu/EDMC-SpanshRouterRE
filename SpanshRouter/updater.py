@@ -9,24 +9,24 @@ import zipfile
 class SpanshUpdater():
     def __init__(self, version, plugin_dir):
         self.version = version
-        self.zip_name = "EDMC_SpanshRouter_" + version.replace('.', '') + ".zip"
+        self.zip_name = "EDMC-SpanshRouterRE-" + version + ".zip"
         self.plugin_dir = plugin_dir
         self.zip_path = os.path.join(self.plugin_dir, self.zip_name)
         self.zip_downloaded = False
         self.changelogs = self.get_changelog()
 
     def download_zip(self):
-        url = 'https://github.com/CMDR-Kiel42/EDMC_SpanshRouter/releases/download/v' + self.version + '/' + self.zip_name
+        url = 'https://github.com/rinkulu/EDMC-SpanshRouterRE/releases/download/v' + self.version + '/' + self.zip_name
 
         try:
             r = requests.get(url)
             if r.status_code == 200:
                 with open(self.zip_path, 'wb') as f:
-                    print("Downloading SpanshRouter to " + self.zip_path)
+                    print("Downloading SpanshRouterRE to " + self.zip_path)
                     f.write(os.path.join(r.content))
                 self.zip_downloaded = True
             else:
-                sys.stderr.write("Failed to fetch SpanchRouter update. Status code: " + str(r.status_code))
+                sys.stderr.write("Failed to fetch SpanshRouterRE update. Status code: " + str(r.status_code))
                 self.zip_downloaded = False
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -48,10 +48,10 @@ class SpanshUpdater():
                 lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
                 sys.stderr.write(''.join('!! ' + line for line in lines))
         else:
-            sys.stderr.write("Error when downloading the latest SpanshRouter update")
+            sys.stderr.write("Error when downloading the latest SpanshRouterRE update")
 
     def get_changelog(self):
-        url = "https://api.github.com/repos/CMDR-Kiel42/EDMC_SpanshRouter/releases/latest"
+        url = "https://api.github.com/repos/rinkulu/EDMC-SpanshRouterRE/releases/latest"
         try:
             r = requests.get(url, timeout=2)
 

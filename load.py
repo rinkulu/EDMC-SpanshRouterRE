@@ -14,7 +14,7 @@ def plugin_start(plugin_dir):
     global spansh_router
     spansh_router = SpanshRouter(plugin_dir)
     spansh_router.check_for_update()
-    return 'SpanshRouter'
+    return 'SpanshRouterRE'
 
 
 def plugin_stop():
@@ -40,14 +40,14 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
 def ask_for_update():
     global spansh_router
     if spansh_router.update_available:
-        update_txt = "New Spansh Router update available!\n"
+        update_txt = "New SpanshRouterRE update available!\n"
         update_txt += "If you choose to install it, you will have to restart EDMC for it to take effect.\n\n"
         update_txt += spansh_router.spansh_updater.changelogs
         update_txt += "\n\nInstall?"
-        install_update = confirmDialog.askyesno("SpanshRouter", update_txt)
+        install_update = confirmDialog.askyesno("SpanshRouterRE", update_txt)
 
         if install_update:
-            confirmDialog.showinfo("SpanshRouter", "The update will be installed as soon as you quit EDMC.")
+            confirmDialog.showinfo("SpanshRouterRE", "The update will be installed as soon as you quit EDMC.")
         else:
             spansh_router.update_available = False
 
