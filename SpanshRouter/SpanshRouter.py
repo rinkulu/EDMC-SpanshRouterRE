@@ -117,7 +117,7 @@ class SpanshRouter():
 
         self.show_plot_gui(False)
 
-        if not self.route.__len__() > 0:
+        if not len(self.route) > 0:
             self.waypoint_prev_btn.grid_remove()
             self.waypoint_btn.grid_remove()
             self.waypoint_next_btn.grid_remove()
@@ -180,7 +180,7 @@ class SpanshRouter():
 
     def show_route_gui(self, show: bool):
         self.hide_error()
-        if not show or not self.route.__len__() > 0:
+        if not show or not len(self.route) > 0:
             self.waypoint_prev_btn.grid_remove()
             self.waypoint_btn.grid_remove()
             self.waypoint_next_btn.grid_remove()
@@ -220,7 +220,7 @@ class SpanshRouter():
             else:
                 self.waypoint_prev_btn.config(state=tk.NORMAL)
 
-                if self.offset == self.route.__len__() - 1:
+                if self.offset == len(self.route) - 1:
                     self.waypoint_next_btn.config(state=tk.DISABLED)
                 else:
                     self.waypoint_next_btn.config(state=tk.NORMAL)
@@ -325,7 +325,7 @@ class SpanshRouter():
             self.parent.update()
 
     def goto_next_waypoint(self):
-        if self.offset < self.route.__len__() - 1:
+        if self.offset < len(self.route) - 1:
             self.update_route(1)
 
     def goto_prev_waypoint(self):
@@ -342,7 +342,7 @@ class SpanshRouter():
             if self.route[self.offset][1] not in [None, "", []]:
                 self.jumps_left += int(self.route[self.offset][1])
 
-        if self.offset >= self.route.__len__():
+        if self.offset >= len(self.route):
             self.next_stop = "End of the road!"
             self.update_gui()
         else:
@@ -366,7 +366,7 @@ class SpanshRouter():
         ]
         filename = filedialog.askopenfilename(filetypes=ftypes, initialdir=os.path.expanduser('~'))
 
-        if filename.__len__() > 0:
+        if len(filename) > 0:
             try:
                 ftype_supported = False
                 if filename.endswith(".csv"):
@@ -466,7 +466,7 @@ class SpanshRouter():
                     bodysubtype = row[self.bodysubtype_header]
 
                     # Update the current system with additional bodies from new CSV row
-                    if self.route.__len__() > 0 and row[self.system_header] == self.route[-1][0]:
+                    if len(self.route) > 0 and row[self.system_header] == self.route[-1][0]:
                         self.route[-1][2].append(bodyname)
                         self.route[-1][3].append(bodysubtype)
                         continue
@@ -644,7 +644,7 @@ class SpanshRouter():
             self.show_error("An error occured while reading the file.")
 
     def export_route(self):
-        if self.route.__len__() == 0:
+        if len(self.route) == 0:
             # logger.info("No route to export")
             print("No route to export")
             return
@@ -657,7 +657,7 @@ class SpanshRouter():
         ftypes = [('TCE Flight Plan files', '*.exp')]
         filename = filedialog.asksaveasfilename(filetypes=ftypes, initialdir=os.path.expanduser('~'), initialfile=f"{route_name}.exp")
 
-        if filename.__len__() > 0:
+        if len(filename) > 0:
             try:
                 with open(filename, 'w') as csvfile:
                     for row in self.route:
@@ -697,7 +697,7 @@ class SpanshRouter():
         self.save_offset()
 
     def save_route(self):
-        if self.route.__len__() != 0:
+        if len(self.route) != 0:
             with open(self.save_route_path, 'w', newline='') as csvfile:
                 if self.roadtoriches:
                     # Write output: System, Jumps, Bodies[], BodySubTypes[]
@@ -728,7 +728,7 @@ class SpanshRouter():
                 print("No route to delete")
 
     def save_offset(self):
-        if self.route.__len__() != 0:
+        if len(self.route) != 0:
             with open(self.offset_file_path, 'w') as offset_fh:
                 offset_fh.write(str(self.offset))
         else:
@@ -786,7 +786,7 @@ class SpanshRouter():
 
     def check_range(self, name, index, mode):
         value = self.range_entry.var.get()
-        if value.__len__() > 0 and value != self.range_entry.placeholder:
+        if len(value) > 0 and value != self.range_entry.placeholder:
             try:
                 float(value)
                 self.range_entry.set_error_style(False)

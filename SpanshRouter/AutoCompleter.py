@@ -70,7 +70,7 @@ class AutoCompleter(PlaceHolder):
 
     def changed(self, name=None, index=None, mode=None):
         value = self.var.get()
-        if value.__len__() < 3 and self.lb_up or self.has_selected:
+        if len(value) < 3 and self.lb_up or self.has_selected:
             self.hide_list()
             self.has_selected = False
         else:
@@ -142,7 +142,7 @@ class AutoCompleter(PlaceHolder):
 
     def query_systems(self, inp):
         inp = inp.strip()
-        if inp != self.placeholder and inp.__len__() >= 3:
+        if inp != self.placeholder and len(inp) >= 3:
             url = "https://spansh.co.uk/api/systems?"
             try:
                 results = requests.get(
