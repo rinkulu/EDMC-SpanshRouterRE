@@ -50,18 +50,18 @@ class SpanshUpdater():
         else:
             sys.stderr.write("Error when downloading the latest SpanshRouterRE update")
 
-    def get_changelog(self):
-        url = "https://api.github.com/repos/rinkulu/EDMC-SpanshRouterRE/releases/latest"
+    def get_changelog(self) -> str:
         try:
+            url = "https://api.github.com/repos/rinkulu/EDMC-SpanshRouterRE/releases/latest"
             r = requests.get(url, timeout=2)
-
-            if r.status_code == 200:
-                # Get the changelog and replace all breaklines with simple ones
-                changelogs = json.loads(r.content)["body"]
-                changelogs = "\n".join(changelogs.splitlines())
-                return changelogs
-
-        except Exception:
+            r.raise_for_status()
+        except requests.RequestException:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             sys.stderr.write(''.join('!! ' + line for line in lines))
+            return ""
+
+        # Get the changelog and replace all breaklines with simple ones
+        changelogs = json.loads(r.content)["body"]
+        changelogs = "\n".join(changelogs.splitlines())
+        return changelogs

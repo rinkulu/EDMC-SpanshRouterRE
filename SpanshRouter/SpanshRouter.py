@@ -2,7 +2,6 @@ import ast
 import csv
 import io
 import json
-import logging
 import os
 import re
 import requests
@@ -13,32 +12,19 @@ import tkinter.filedialog as filedialog
 import tkinter.messagebox as confirmDialog
 import traceback
 import webbrowser
+from pathlib import Path
 from time import sleep
 
-from config import appname  # type: ignore
 from monitor import monitor  # type: ignore
 
 from .AutoCompleter import AutoCompleter
+from .context import Context
 from .PlaceHolder import PlaceHolder
 from .updater import SpanshUpdater
 
 
-# This could also be returned from plugin_start3()
-plugin_name = os.path.basename(os.path.dirname(__file__))
-
-# A Logger is used per 'found' plugin to make it easy to include the plugin's
-# folder name in the logging output format.
-# NB: plugin_name here *must* be the plugin's folder name as per the preceding
-#     code, else the logger won't be properly set up.
-logger = logging.getLogger(f'{appname}.{plugin_name}')
-
-
 class SpanshRouter():
-    def __init__(self, plugin_dir):
-        version_file = os.path.join(plugin_dir, "version")
-        with open(version_file, 'r') as version_fd:
-            self.plugin_version = version_fd.read()
-
+    def __init__(self):
         self.update_available = False
         self.roadtoriches = False
         self.fleetcarrier = False
@@ -50,10 +36,9 @@ class SpanshRouter():
         self.fleetstocklbl_txt = "Time to restock Tritium"
         self.bodies = ""
         self.parent = None
-        self.plugin_dir = plugin_dir
-        self.save_route_path = os.path.join(plugin_dir, 'route.csv')
-        self.export_route_path = os.path.join(plugin_dir, 'Export for TCE.exp')
-        self.offset_file_path = os.path.join(plugin_dir, 'offset')
+        self.save_route_path = Context.plugin_dir / 'route.csv'
+        self.export_route_path = Context.plugin_dir / 'Export for TCE.exp'
+        self.offset_file_path = Context.plugin_dir / 'offset'
         self.offset = 0
         self.jumps_left = 0
         self.error_txt = tk.StringVar()
@@ -65,7 +50,7 @@ class SpanshRouter():
         self.restocktritium_header = "Restock Tritium"
 
     #   -- GUI part --
-    def init_gui(self, parent):
+    def init_gui(self, parent: tk.Widget):
         self.parent = parent
         self.frame = tk.Frame(parent, borderwidth=2)
         self.frame.grid(sticky=tk.NSEW, columnspan=2)
@@ -146,7 +131,7 @@ class SpanshRouter():
 
         return self.frame
 
-    def show_plot_gui(self, show=True):
+    def show_plot_gui(self, show: bool = True):
         if show:
             self.waypoint_prev_btn.grid_remove()
             self.waypoint_btn.grid_remove()
@@ -188,12 +173,12 @@ class SpanshRouter():
             self.csv_route_btn.grid()
             self.show_route_gui(True)
 
-    def set_source_ac(self, text):
+    def set_source_ac(self, text: str):
         self.source_ac.delete(0, tk.END)
         self.source_ac.insert(0, text)
         self.source_ac.set_default_style()
 
-    def show_route_gui(self, show):
+    def show_route_gui(self, show: bool):
         self.hide_error()
         if not show or not self.route.__len__() > 0:
             self.waypoint_prev_btn.grid_remove()
@@ -246,14 +231,14 @@ class SpanshRouter():
     def update_gui(self):
         self.show_route_gui(True)
 
-    def show_error(self, error):
+    def show_error(self, error: str):
         self.error_txt.set(error)
         self.error_lbl.grid()
 
     def hide_error(self):
         self.error_lbl.grid_remove()
 
-    def enable_plot_gui(self, enable):
+    def enable_plot_gui(self, enable: bool):
         if enable:
             self.source_ac.config(state=tk.NORMAL)
             self.source_ac.update_idletasks()
@@ -332,6 +317,9 @@ class SpanshRouter():
             command = subprocess.Popen(["echo", "-n", self.next_stop], stdout=subprocess.PIPE)
             subprocess.Popen(["xclip", "-selection", "c"], stdin=command.stdout)
         else:
+            if not self.parent:
+                Context.logger.error("UI isn't initialized yet")
+                return
             self.parent.clipboard_clear()
             self.parent.clipboard_append(self.next_stop)
             self.parent.update()
@@ -344,7 +332,7 @@ class SpanshRouter():
         if self.offset > 0:
             self.update_route(-1)
 
-    def update_route(self, direction=1):
+    def update_route(self, direction: int = 1):
         if direction > 0:
             if self.route[self.offset][1] not in [None, "", []]:
                 self.jumps_left -= int(self.route[self.offset][1])
@@ -405,8 +393,8 @@ class SpanshRouter():
                 self.enable_plot_gui(True)
                 self.show_error("An error occured while reading the file.")
 
-    def plot_csv(self, filename, clear_previous_route=True):
-        with io.open(filename, 'r', encoding='utf-8-sig', newline='') as csvfile:
+    def plot_csv(self, filepath: Path | str, clear_previous_route: bool = True):
+        with io.open(filepath, 'r', encoding='utf-8-sig', newline='') as csvfile:
             self.roadtoriches = False
             self.fleetcarrier = False
 
@@ -628,7 +616,7 @@ class SpanshRouter():
             self.enable_plot_gui(True)
             self.show_error(self.plot_error)
 
-    def plot_edts(self, filename):
+    def plot_edts(self, filename: Path | str):
         try:
             with open(filename, 'r') as txtfile:
                 route_txt = txtfile.readlines()
@@ -680,7 +668,7 @@ class SpanshRouter():
                 # logger.error(''.join('!! ' + line for line in lines))
                 self.show_error("An error occured while writing the file.")
 
-    def clear_route(self, show_dialog=True):
+    def clear_route(self, show_dialog: bool = True):
         clear = confirmDialog.askyesno(
             "SpanshRouterRE",
             "Are you sure you want to clear the current route?"
@@ -810,17 +798,17 @@ class SpanshRouter():
     def cleanup_old_version(self):
         try:
             if (
-                os.path.exists(os.path.join(self.plugin_dir, "AutoCompleter.py"))
-                and os.path.exists(os.path.join(self.plugin_dir, "SpanshRouter"))
+                os.path.exists(os.path.join(Context.plugin_dir, "AutoCompleter.py"))
+                and os.path.exists(os.path.join(Context.plugin_dir, "SpanshRouter"))
             ):
-                files_list = os.listdir(self.plugin_dir)
+                files_list = os.listdir(Context.plugin_dir)
 
                 for filename in files_list:
                     if (
                         filename != "load.py"
                         and (filename.endswith(".py") or filename.endswith(".pyc") or filename.endswith(".pyo"))
                     ):
-                        os.remove(os.path.join(self.plugin_dir, filename))
+                        os.remove(os.path.join(Context.plugin_dir, filename))
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
@@ -832,9 +820,9 @@ class SpanshRouter():
         try:
             response = requests.get(version_url, timeout=2)
             if response.status_code == 200:
-                if self.plugin_version != response.text:
+                if Context.plugin_version != response.text:
                     self.update_available = True
-                    self.spansh_updater = SpanshUpdater(response.text, self.plugin_dir)
+                    self.spansh_updater = SpanshUpdater(response.text, Context.plugin_dir)
 
             else:
                 sys.stderr.write("Could not query latest SpanshRouterRE version: " + str(response.status_code) + response.text)
