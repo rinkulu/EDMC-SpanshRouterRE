@@ -11,6 +11,7 @@ import tkinter.filedialog as filedialog
 import tkinter.messagebox as confirmDialog
 import webbrowser
 from pathlib import Path
+from semantic_version import Version
 from time import sleep
 
 from monitor import monitor  # type: ignore
@@ -807,7 +808,7 @@ class SpanshRouter():
         try:
             response = requests.get(version_url, timeout=2)
             if response.status_code == 200:
-                if Context.plugin_version != response.text:
+                if Context.plugin_version != Version(response.text):
                     self.update_available = True
                     self.spansh_updater = SpanshUpdater(response.text, Context.plugin_dir)
             else:
