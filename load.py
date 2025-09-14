@@ -40,6 +40,7 @@ def plugin_start3(plugin_dir: str) -> str:
     Context.plugin_dir = Path(plugin_dir).resolve()
     version_file = Context.plugin_dir / "version"
     Context.plugin_version = Version(version_file.read_text())
+    Context.plugin_useragent = f"EDMC-SpanshRouterRE-{Context.plugin_version}"
     Context.router = SpanshRouter()
     Context.router.check_for_update()
     return 'SpanshRouterRE'

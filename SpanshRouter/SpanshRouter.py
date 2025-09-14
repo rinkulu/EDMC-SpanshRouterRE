@@ -531,8 +531,7 @@ class SpanshRouter():
                         "from": source,
                         "to": dest
                     },
-                    # TODO: switch to using a global setting
-                    headers={'User-Agent': "EDMC-SpanshRouterRE 1.0.0"}
+                    headers={'User-Agent': Context.plugin_useragent}
                 )
 
                 if results.status_code == 202:
@@ -633,14 +632,13 @@ class SpanshRouter():
 
     def export_route(self):
         if len(self.route) == 0:
-            # logger.info("No route to export")
             Context.logger.debug("No route to export")
             return
 
         route_start = self.route[0][0]
         route_end = self.route[-1][0]
         route_name = f"{route_start} to {route_end}"
-        # logger.info(f"Route name: {route_name}")
+        Context.logger.debug(f"Exporting route: {route_name}")
 
         ftypes = [('TCE Flight Plan files', '*.exp')]
         filename = filedialog.asksaveasfilename(filetypes=ftypes, initialdir=os.path.expanduser('~'), initialfile=f"{route_name}.exp")
@@ -650,10 +648,8 @@ class SpanshRouter():
                 with open(filename, 'w') as csvfile:
                     for row in self.route:
                         csvfile.write(f"{route_name},{row[0]}\n")
-            except Exception:
-                # exc_type, exc_value, exc_traceback = sys.exc_info()
-                # lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                # logger.error(''.join('!! ' + line for line in lines))
+            except Exception as e:
+                Context.logger.error("Failed to write route to the file, exception info:", exc_info=e)
                 self.show_error("An error occured while writing the file.")
 
     def clear_route(self, show_dialog: bool = True):

@@ -14,10 +14,15 @@ if TYPE_CHECKING:
 
 @dataclass
 class Context:
+    # plugin parameters
     plugin_name: str = None
     plugin_version: Version = None
     plugin_dir: Path = None
+    plugin_useragent: str = None
+
+    # global objects
     logger: logging.Logger = None
     router: 'SpanshRouter' = None
 
+    # game state
     system: str | None = None
