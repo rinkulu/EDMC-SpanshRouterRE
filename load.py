@@ -75,7 +75,6 @@ def journal_entry(cmdr: str, is_beta: bool, system: str, station: str, entry: di
         Context.logger.debug(f"Current system changed: {Context.system} -> {new_system}")
         Context.system = new_system
         Context.router.update_route()
-        Context.router.update_route()
 
 
 def ask_for_update():
@@ -92,7 +91,8 @@ def ask_for_update():
             Context.router.update_available = False
 
 
-def plugin_app(parent: tk.Widget):
+def plugin_app(parent: tk.Widget) -> tk.Frame:
     Context.router.init_gui(parent)
     Context.router.open_last_route()
     parent.master.after_idle(ask_for_update)
+    return Context.router.frame

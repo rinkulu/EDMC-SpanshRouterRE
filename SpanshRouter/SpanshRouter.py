@@ -50,7 +50,7 @@ class SpanshRouter():
     def init_gui(self, parent: tk.Widget):
         self.parent = parent
         self.frame = tk.Frame(parent, borderwidth=2)
-        self.frame.grid(sticky=tk.NSEW, columnspan=2)
+        self.frame.pack(fill=tk.BOTH, expand=True)
 
         # Route info
         self.waypoint_prev_btn = tk.Button(self.frame, text="^", command=self.goto_prev_waypoint)
@@ -187,15 +187,15 @@ class SpanshRouter():
             self.export_route_btn.grid_remove()
             self.clear_route_btn.grid_remove()
         else:
-            self.waypoint_btn["text"] = self.next_wp_label + '\n' + self.next_stop
+            self.waypoint_btn.configure(text=self.next_wp_label + '\n' + self.next_stop)
             if self.jumps_left > 0:
-                self.jumpcounttxt_lbl["text"] = self.jumpcountlbl_txt + str(self.jumps_left)
+                self.jumpcounttxt_lbl.configure(text=self.jumpcountlbl_txt + str(self.jumps_left))
                 self.jumpcounttxt_lbl.grid()
             else:
                 self.jumpcounttxt_lbl.grid_remove()
 
             if self.roadtoriches:
-                self.bodies_lbl["text"] = self.bodieslbl_txt + self.bodies
+                self.bodies_lbl.configure(text=self.bodieslbl_txt + self.bodies)
                 self.bodies_lbl.grid()
             else:
                 self.bodies_lbl.grid_remove()
@@ -205,7 +205,7 @@ class SpanshRouter():
                 if self.offset > 0:
                     restock = self.route[self.offset - 1][2]
                     if restock.lower() == "yes":
-                        self.fleetrestock_lbl["text"] = f"At: {self.route[self.offset - 1][0]}\n   {self.fleetstocklbl_txt}"
+                        self.fleetrestock_lbl.configure(text=f"At: {self.route[self.offset - 1][0]}\n   {self.fleetstocklbl_txt}")
                         self.fleetrestock_lbl.grid()
 
             self.waypoint_prev_btn.grid()
@@ -779,25 +779,8 @@ class SpanshRouter():
                 self.show_error("Invalid range")
                 self.range_entry.set_error_style()
 
-    def cleanup_old_version(self):
-        try:
-            if (
-                os.path.exists(os.path.join(Context.plugin_dir, "AutoCompleter.py"))
-                and os.path.exists(os.path.join(Context.plugin_dir, "SpanshRouter"))
-            ):
-                files_list = os.listdir(Context.plugin_dir)
-
-                for filename in files_list:
-                    if (
-                        filename != "load.py"
-                        and (filename.endswith(".py") or filename.endswith(".pyc") or filename.endswith(".pyo"))
-                    ):
-                        os.remove(os.path.join(Context.plugin_dir, filename))
-        except Exception as e:
-            Context.logger.error("Failed to delete old version, exception info:", exc_info=e)
 
     def check_for_update(self):
-        self.cleanup_old_version()
         version_url = "https://raw.githubusercontent.com/rinkulu/EDMC-SpanshRouterRE/master/version"
         try:
             response = requests.get(version_url, timeout=2)
