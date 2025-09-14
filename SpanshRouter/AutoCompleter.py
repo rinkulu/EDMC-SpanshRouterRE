@@ -20,7 +20,7 @@ class AutoCompleter(PlaceHolder):
         self.queue = queue.Queue()
 
         PlaceHolder.__init__(self, parent, placeholder, **kw)
-        self.var.traceid = self.var.trace('w', self.changed)
+        self.var_traceid = self.var.trace_add('write', self.changed)
 
         # Create right click menu
         self.menu = tk.Menu(self.parent, tearoff=0)
@@ -81,11 +81,11 @@ class AutoCompleter(PlaceHolder):
         if self.lb_up:
             self.has_selected = True
             index = self.lb.curselection()
-            self.var.trace_vdelete("w", self.var.traceid)
+            self.var.trace_remove("write", self.var_traceid)
             self.var.set(self.lb.get(index))
             self.hide_list()
             self.icursor(tk.END)
-            self.var.traceid = self.var.trace('w', self.changed)
+            self.var_traceid = self.var.trace_add('write', self.changed)
 
     def up(self, widget):
         if self.lb_up:
@@ -182,13 +182,13 @@ class AutoCompleter(PlaceHolder):
             self.set_default_style()
 
         try:
-            self.var.trace_vdelete("w", self.var.traceid)
+            self.var.trace_remove("write", self.var_traceid)
         except Exception:
             pass
         finally:
             self.delete(0, tk.END)
             self.insert(0, text)
-            self.var.traceid = self.var.trace('w', self.changed)
+            self.var_traceid = self.var.trace_add('write', self.changed)
 
 
 if __name__ == '__main__':

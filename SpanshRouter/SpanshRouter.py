@@ -1,6 +1,5 @@
 import ast
 import csv
-import io
 import json
 import os
 import re
@@ -10,7 +9,6 @@ import sys
 import tkinter as tk
 import tkinter.filedialog as filedialog
 import tkinter.messagebox as confirmDialog
-import traceback
 import webbrowser
 from pathlib import Path
 from time import sleep
@@ -113,7 +111,7 @@ class SpanshRouter():
         row += 1
 
         # Check if we're having a valid range on the fly
-        self.range_entry.var.trace('w', self.check_range)
+        self.range_entry.var.trace_add('write', self.check_range)
 
         self.show_plot_gui(False)
 
@@ -275,7 +273,7 @@ class SpanshRouter():
             with open(self.save_route_path, 'r', newline='') as csvfile:
                 # Check if the file has a header for compatibility with previous versions
                 dict_route_reader = csv.DictReader(csvfile)
-                if dict_route_reader.fieldnames[0] == self.system_header:
+                if dict_route_reader.fieldnames and dict_route_reader.fieldnames[0] == self.system_header:
                     has_headers = True
 
             if has_headers:
@@ -390,7 +388,7 @@ class SpanshRouter():
                 self.show_error("An error occured while reading the file.")
 
     def plot_csv(self, filepath: Path | str, clear_previous_route: bool = True):
-        with io.open(filepath, 'r', encoding='utf-8-sig', newline='') as csvfile:
+        with open(filepath, 'r', encoding='utf-8-sig', newline='') as csvfile:
             self.roadtoriches = False
             self.fleetcarrier = False
 
@@ -400,6 +398,9 @@ class SpanshRouter():
             route_reader = csv.DictReader(csvfile)
 
             # Get column header names as string
+            if not route_reader.fieldnames:
+                Context.logger.error(f"File {filepath} is empty or of unsupported format")
+                return
             headerline = ','.join(route_reader.fieldnames)
 
             # Define the differnt internal formats based on the CSV header row
