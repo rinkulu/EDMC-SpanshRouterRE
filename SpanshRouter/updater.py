@@ -1,9 +1,9 @@
 import json
 import os
 import requests
-import sys
-import traceback
 import zipfile
+
+from .context import Context
 
 
 class SpanshUpdater():
@@ -17,48 +17,38 @@ class SpanshUpdater():
 
     def download_zip(self):
         url = 'https://github.com/rinkulu/EDMC-SpanshRouterRE/releases/download/v' + self.version + '/' + self.zip_name
-
         try:
             r = requests.get(url)
-            if r.status_code == 200:
-                with open(self.zip_path, 'wb') as f:
-                    print("Downloading SpanshRouterRE to " + self.zip_path)
-                    f.write(os.path.join(r.content))
-                self.zip_downloaded = True
-            else:
-                sys.stderr.write("Failed to fetch SpanshRouterRE update. Status code: " + str(r.status_code))
-                self.zip_downloaded = False
+            r.raise_for_status()
         except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            sys.stderr.write(''.join('!! ' + line for line in lines))
+            Context.logger.error(f"Failed to download SpanshRouterRE update (status code {r.status_code}).)")
             self.zip_downloaded = False
+        else:
+            with open(self.zip_path, 'wb') as f:
+                Context.logger.info("Downloading SpanshRouterRE to " + self.zip_path)
+                f.write(os.path.join(r.content))
+            self.zip_downloaded = True
         finally:
             return self.zip_downloaded
 
     def install(self):
-        if self.download_zip():
-            try:
-                with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(self.plugin_dir)
+        if not self.download_zip():
+            return
+        try:
+            with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
+                zip_ref.extractall(self.plugin_dir)
+            os.remove(self.zip_path)
+        except Exception as e:
+            Context.logger.error("Failed to install update, exception info:", exc_info=e)
 
-                os.remove(self.zip_path)
-            except Exception:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                sys.stderr.write(''.join('!! ' + line for line in lines))
-        else:
-            sys.stderr.write("Error when downloading the latest SpanshRouterRE update")
 
     def get_changelog(self) -> str:
         try:
             url = "https://api.github.com/repos/rinkulu/EDMC-SpanshRouterRE/releases/latest"
             r = requests.get(url, timeout=2)
             r.raise_for_status()
-        except requests.RequestException:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            sys.stderr.write(''.join('!! ' + line for line in lines))
+        except requests.RequestException as e:
+            Context.logger.error("Failed to get changelog, exception info:", exc_info=e)
             return ""
 
         # Get the changelog and replace all breaklines with simple ones

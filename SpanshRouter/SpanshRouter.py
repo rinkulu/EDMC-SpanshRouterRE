@@ -306,11 +306,9 @@ class SpanshRouter():
             self.update_gui()
 
         except IOError:
-            print("No previously saved route.")
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            sys.stderr.write(''.join('!! ' + line for line in lines))
+            Context.logger.debug("No previously saved route.")
+        except Exception as e:
+            Context.logger.error("Failed to open last route, exception info:", exc_info=e)
 
     def copy_waypoint(self):
         if sys.platform == "linux" or sys.platform == "linux2":
@@ -386,10 +384,8 @@ class SpanshRouter():
                     self.save_all_route()
                 else:
                     self.show_error("Unsupported file type")
-            except Exception:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                sys.stderr.write(''.join('!! ' + line for line in lines))
+            except Exception as e:
+                Context.logger.error("Failed to read user file, exception info:", exc_info=e)
                 self.enable_plot_gui(True)
                 self.show_error("An error occured while reading the file.")
 
@@ -569,11 +565,9 @@ class SpanshRouter():
                             self.update_gui()
                             self.save_all_route()
                         else:
-                            sys.stderr.write(
-                                "Failed to query plotted route from Spansh: code "
-                                + str(route_response.status_code)
+                            Context.logger.error(
+                                f"Failed to query plotted route from Spansh (response code {route_response.status_code}): "
                                 + route_response.text
-                                + '\n'
                             )
                             self.enable_plot_gui(True)
                             failure = json.loads(results.content)
@@ -587,15 +581,13 @@ class SpanshRouter():
                             else:
                                 self.show_error(self.plot_error)
                     else:
-                        sys.stderr.write("Query to Spansh timed out")
+                        Context.logger.error("Query to Spansh timed out")
                         self.enable_plot_gui(True)
                         self.show_error("The query to Spansh was too long and timed out, please try again.")
                 else:
-                    sys.stderr.write(
-                        "Failed to query plotted route from Spansh: code "
-                        + str(results.status_code)
+                    Context.logger.error(
+                        f"Failed to query plotted route from Spansh (response code {results.status_code}): "
                         + results.text
-                        + '\n'
                     )
                     self.enable_plot_gui(True)
                     failure = json.loads(results.content)
@@ -609,10 +601,8 @@ class SpanshRouter():
                     else:
                         self.show_error(self.plot_error)
 
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            sys.stderr.write(''.join('!! ' + line for line in lines))
+        except Exception as e:
+            Context.logger.error("Failed to plot route, exception info:", exc_info=e)
             self.enable_plot_gui(True)
             self.show_error(self.plot_error)
 
@@ -636,17 +626,15 @@ class SpanshRouter():
                                     self.jumps_left += jumps
                             else:
                                 self.route.append([system.strip(), jumps])
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            sys.stderr.write(''.join('!! ' + line for line in lines))
+        except Exception as e:
+            Context.logger.error("Failed to parse TXT route file, exception info:", exc_info=e)
             self.enable_plot_gui(True)
             self.show_error("An error occured while reading the file.")
 
     def export_route(self):
         if len(self.route) == 0:
             # logger.info("No route to export")
-            print("No route to export")
+            Context.logger.debug("No route to export")
             return
 
         route_start = self.route[0][0]
@@ -684,11 +672,11 @@ class SpanshRouter():
             try:
                 os.remove(self.save_route_path)
             except Exception:
-                print("No route to delete")
+                Context.logger.debug("No route to delete")
             try:
                 os.remove(self.offset_file_path)
             except Exception:
-                print("No offset file to delete")
+                Context.logger.debug("No offset file to delete")
 
             self.update_gui()
 
@@ -725,7 +713,7 @@ class SpanshRouter():
             try:
                 os.remove(self.save_route_path)
             except Exception:
-                print("No route to delete")
+                Context.logger.debug("No route to delete")
 
     def save_offset(self):
         if len(self.route) != 0:
@@ -735,7 +723,7 @@ class SpanshRouter():
             try:
                 os.remove(self.offset_file_path)
             except Exception:
-                print("No offset to delete")
+                Context.logger.debug("No offset to delete")
 
     def update_bodies_text(self):
         if not self.roadtoriches:
@@ -809,10 +797,8 @@ class SpanshRouter():
                         and (filename.endswith(".py") or filename.endswith(".pyc") or filename.endswith(".pyo"))
                     ):
                         os.remove(os.path.join(Context.plugin_dir, filename))
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            sys.stderr.write(''.join('!! ' + line for line in lines))
+        except Exception as e:
+            Context.logger.error("Failed to delete old version, exception info:", exc_info=e)
 
     def check_for_update(self):
         self.cleanup_old_version()
@@ -823,13 +809,13 @@ class SpanshRouter():
                 if Context.plugin_version != response.text:
                     self.update_available = True
                     self.spansh_updater = SpanshUpdater(response.text, Context.plugin_dir)
-
             else:
-                sys.stderr.write("Could not query latest SpanshRouterRE version: " + str(response.status_code) + response.text)
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            sys.stderr.write(''.join('!! ' + line for line in lines))
+                Context.logger.error(
+                    f"Could not query latest SpanshRouterRE version (status code {response.status_code}): "
+                    + response.text
+                )
+        except Exception as e:
+            Context.logger.error("Failed to check for updates, exception info:", exc_info=e)
 
     def install_update(self):
         self.spansh_updater.install()

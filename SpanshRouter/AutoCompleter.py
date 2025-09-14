@@ -1,12 +1,12 @@
 import json
 import queue
 import requests
-import sys
 import threading
 import tkinter as tk
-import traceback
 
 from SpanshRouter.PlaceHolder import PlaceHolder
+
+from .context import Context
 
 
 class AutoCompleter(PlaceHolder):
@@ -156,10 +156,8 @@ class AutoCompleter(PlaceHolder):
                 lista = json.loads(results.content)
                 if lista:
                     self.write(lista)
-            except Exception:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                sys.stderr.write(''.join('!! ' + line for line in lines))
+            except Exception as e:
+                Context.logger.error("Failed to query system, exception info:", exc_info=e)
 
     def write(self, lista):
         self.queue.put(lista)
