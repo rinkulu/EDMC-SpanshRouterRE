@@ -175,7 +175,7 @@ class AutoCompleter(PlaceHolder):
             pass
         self.after(100, self.update_me)
 
-    def set_text(self, text, placeholder_style=True):
+    def set_text(self, text: str, placeholder_style: bool = True):
         if placeholder_style:
             self['fg'] = self.placeholder_color
         else:

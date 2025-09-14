@@ -59,11 +59,21 @@ def plugin_stop():
 def journal_entry(cmdr: str, is_beta: bool, system: str, station: str, entry: dict, state: dict):
     if (
         entry['event'] in ['FSDJump', 'Location', 'SupercruiseEntry', 'SupercruiseExit']
-        and entry["StarSystem"].lower() == Context.router.next_stop.lower()
+        and (new_system := entry["StarSystem"]) == Context.router.next_stop
+        and new_system != Context.system
     ):
+        Context.logger.debug(f"Current system changed: {Context.system} -> {new_system}")
+        Context.system = new_system
         Context.router.update_route()
-        Context.router.set_source_ac(entry["StarSystem"])
-    elif entry['event'] == 'FSSDiscoveryScan' and entry['SystemName'] == Context.router.next_stop:
+        Context.router.set_source_ac(new_system)
+    elif (
+        entry['event'] == 'FSSDiscoveryScan'
+        and (new_system := entry["SystemName"]) == Context.router.next_stop
+        and new_system != Context.system
+    ):
+        Context.logger.debug(f"Current system changed: {Context.system} -> {new_system}")
+        Context.system = new_system
+        Context.router.update_route()
         Context.router.update_route()
 
 

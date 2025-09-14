@@ -19,3 +19,5 @@ class Context:
     plugin_dir: Path = None
     logger: logging.Logger = None
     router: 'SpanshRouter' = None
+
+    system: str | None = None
